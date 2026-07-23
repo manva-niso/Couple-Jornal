@@ -19,7 +19,7 @@ export default function ExportBackupButton() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `chitthiya-backup-${new Date().toISOString().split("T")[0]}.json`;
+      a.download = `chitthiya-backup-${new Date().toISOString().split("T")[0]}.zip`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -48,7 +48,7 @@ export default function ExportBackupButton() {
           strokeLinejoin="round"
         />
       </svg>
-      {isExporting ? "Exporting Backup..." : "Export Journal Backup"}
+      {isExporting ? "Preparing backup…" : "Export Journal Backup"}
     </button>
   );
 }

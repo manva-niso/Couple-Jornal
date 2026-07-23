@@ -1,18 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MockEntry } from "@/types";
 import { useSeatStore } from "@/store/useSeatStore";
 import { useEntries } from "@/hooks/useEntries";
 import { canEdit } from "@/lib/permissions";
 import EntryCard from "@/components/entries/EntryCard";
 import SoundAttachMenu from "@/components/entries/SoundAttachMenu";
+import EntryTags from "@/components/entries/EntryTags";
 
 interface DiaryPageProps {
   entry: MockEntry;
   onBackToIndex: () => void;
   onFlipNext?: () => void;
   onFlipPrev?: () => void;
+}
+
+// react-pageflip attaches its own drag-to-flip mousedown listener directly
+// (via native addEventListener) on an ancestor element several levels above
+// any of our components. React's onMouseDown/onTouchStart/onPointerDown JSX
+// props are delegated to a single listener way up at the app root — so the
+// *native* event physically bubbles through page-flip's own listener first,
+// where it calls preventDefault() and blocks focus, before React's synthetic
+// dispatch (and our stopPropagation call inside it) ever runs. The only real
+// fix is a native listener on an intermediate ancestor — this hook does that.
+function useStopPageFlipDrag<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const stop = (e: Event) => e.stopPropagation();
+    const types = ["mousedown", "touchstart", "pointerdown"] as const;
+    for (const type of types) el.addEventListener(type, stop);
+    return () => {
+      for (const type of types) el.removeEventListener(type, stop);
+    };
+  }, []);
+  return ref;
 }
 
 export default function DiaryPage({ entry, onBackToIndex, onFlipNext, onFlipPrev }: DiaryPageProps) {
@@ -23,6 +47,10 @@ export default function DiaryPage({ entry, onBackToIndex, onFlipNext, onFlipPrev
 
   const [isEditingHeading, setIsEditingHeading] = useState(false);
   const [draftTag, setDraftTag] = useState(entry.tag ?? "");
+
+  const headingRef = useStopPageFlipDrag<HTMLDivElement>();
+  const tagsRef = useStopPageFlipDrag<HTMLDivElement>();
+  const soundMenuRef = useStopPageFlipDrag<HTMLDivElement>();
 
   const commitHeading = () => {
     setIsEditingHeading(false);
@@ -49,7 +77,7 @@ export default function DiaryPage({ entry, onBackToIndex, onFlipNext, onFlipPrev
           or getting clipped by that area's overflow. */}
       <div className="relative mt-4 px-8">
         {editable && (
-          <div className="absolute right-0 top-0">
+          <div ref={soundMenuRef} className="absolute right-0 top-0">
             <SoundAttachMenu
               entryId={entry.id}
               media={entry.media ?? []}
@@ -60,23 +88,7 @@ export default function DiaryPage({ entry, onBackToIndex, onFlipNext, onFlipPrev
           </div>
         )}
 
-        {/* react-pageflip only forwards real clicks to <a>/<button> tags — a
-            bare <input> never gets the click, so it can't be focused this way
-            inside the book. We use a <button> (which IS forwarded) to enter
-            edit mode, then autoFocus the input programmatically on mount.
-
-            A double-click swaps the DOM from <button> to <input> between its
-            first and second click. The second click then lands on the
-            <input>, which isn't in page-flip's allow-list, so page-flip
-            intercepts it as a flip gesture instead of a normal click. We stop
-            the mousedown/touchstart/pointerdown from ever reaching page-flip's
-            listeners here (same pattern EntryEditor uses), so neither click of
-            a double-click is ever interpreted as a page-turn. */}
-        <div
-          onMouseDown={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
+        <div ref={headingRef}>
           {isEditingHeading ? (
             <input
               autoFocus
@@ -115,6 +127,14 @@ export default function DiaryPage({ entry, onBackToIndex, onFlipNext, onFlipPrev
       <p className="mt-2 text-center text-sm tracking-wide text-[#806250]">
         {entry.date} · Written by {entry.ownerSeat === "USER_ONE" ? "User 1" : "User 2"}
       </p>
+
+      <div ref={tagsRef} className="mt-2 px-8">
+        <EntryTags
+          tags={entry.tags ?? []}
+          editable={editable}
+          onChange={(tags) => updateEntry(entry.id, { tags })}
+        />
+      </div>
 
       <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
         <EntryCard

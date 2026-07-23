@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import HTMLFlipBook from "react-pageflip";
 import { useEntries } from "@/hooks/useEntries";
 import { useSeatStore } from "@/store/useSeatStore";
+import { useViewStore } from "@/store/useViewStore";
 import DiaryCoverPage from "@/components/diary/DiaryCoverPage";
 import DiaryIndexPage from "@/components/diary/DiaryIndexPage";
 import DiaryPage from "@/components/diary/DiaryPage";
@@ -17,6 +18,8 @@ export default function DiaryBook() {
   const addEntry = useEntries((s) => s.addEntry);
   const viewedSeat = useSeatStore((s) => s.viewedSeat);
   const sessionSeat = useSeatStore((s) => s.sessionSeat);
+  const setCurrentEntryId = useViewStore((s) => s.setCurrentEntryId);
+  const registerCurrentEntryGetter = useViewStore((s) => s.registerCurrentEntryGetter);
   const bookRef = useRef<any>(null);
 
   const sortedEntries = useMemo(
@@ -27,6 +30,29 @@ export default function DiaryBook() {
     [entries, viewedSeat]
   );
 
+  // Kept fresh via a ref (not state) so the getter below always reads the
+  // latest list without needing to re-register on every entries change.
+  const sortedEntriesRef = useRef(sortedEntries);
+  sortedEntriesRef.current = sortedEntries;
+
+  useEffect(() => {
+    return () => setCurrentEntryId(null);
+  }, [setCurrentEntryId]);
+
+  // Ground truth for export/print: ask the flipbook instance directly what
+  // page it's actually showing right now, rather than trusting whatever
+  // onFlip last pushed (which can lag or mis-map in double-page/"spread"
+  // layouts). getCurrentPageIndex() is react-pageflip's own live API for
+  // exactly this.
+  useEffect(() => {
+    registerCurrentEntryGetter(() => {
+      const idx = bookRef.current?.pageFlip()?.getCurrentPageIndex();
+      if (typeof idx !== "number") return null;
+      return sortedEntriesRef.current[idx - FIRST_ENTRY_PAGE]?.id ?? null;
+    });
+    return () => registerCurrentEntryGetter(() => null);
+  }, [registerCurrentEntryGetter]);
+
   const goToPage = (page: number) => {
     bookRef.current?.pageFlip()?.flip(page);
   };
@@ -36,14 +62,13 @@ export default function DiaryBook() {
     if (idx >= 0) goToPage(FIRST_ENTRY_PAGE + idx);
   };
 
+  const handleFlip = (e: { data: number }) => {
+    const entry = sortedEntries[e.data - FIRST_ENTRY_PAGE];
+    setCurrentEntryId(entry?.id ?? null); // null on cover/index pages
+  };
+
   const handleAddEntry = () => {
-    // Server now decides id / ownerSeat / position — we just send date + tag.
     addEntry({ date: new Date().toISOString().slice(0, 10), tag: null });
-    // Note: no goToPage() call here anymore — addEntry() is now async (it
-    // awaits a real API call), so the new entry isn't in `entries` yet at
-    // this exact line. Once addEntry resolves and the store updates,
-    // sortedEntries re-renders with the new page — but we can't flip to it
-    // synchronously anymore the way the old mock version could.
   };
 
   return (
@@ -51,6 +76,7 @@ export default function DiaryBook() {
       <HTMLFlipBook
         key={viewedSeat}
         ref={bookRef}
+        onFlip={handleFlip}
         width={420}
         height={560}
         size="stretch"

@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { MockEntry } from "@/types";
 import { useSeatStore } from "@/store/useSeatStore";
 import { useEntries } from "@/hooks/useEntries";
+import { useViewStore } from "@/store/useViewStore";
 import EntryCard from "@/components/entries/EntryCard";
 import ScrollStick from "@/components/scroll/ScrollStick";
 import AddDateButton from "@/components/scroll/AddDateButton";
@@ -13,6 +14,8 @@ export default function ScrollCanvas() {
   const addEntry = useEntries((s) => s.addEntry);
   const sessionSeat = useSeatStore((s) => s.sessionSeat);
   const viewedSeat = useSeatStore((s) => s.viewedSeat);
+  const setCurrentEntryId = useViewStore((s) => s.setCurrentEntryId);
+  const registerCurrentEntryGetter = useViewStore((s) => s.registerCurrentEntryGetter);
 
   const sortedEntries = useMemo(
     () =>
@@ -24,6 +27,23 @@ export default function ScrollCanvas() {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const activeEntry = sortedEntries[activeIndex] ?? null;
+
+  // Kept for the export button's enabled/disabled UI state.
+  useEffect(() => {
+    setCurrentEntryId(activeEntry?.id ?? null);
+    return () => setCurrentEntryId(null);
+  }, [activeEntry?.id, setCurrentEntryId]);
+
+  // Ground truth for the actual export/print action — a ref so the
+  // registered function always reads the latest value without needing to
+  // re-register (and without risking a stale closure).
+  const activeEntryIdRef = useRef<string | null>(null);
+  activeEntryIdRef.current = activeEntry?.id ?? null;
+
+  useEffect(() => {
+    registerCurrentEntryGetter(() => activeEntryIdRef.current);
+    return () => registerCurrentEntryGetter(() => null);
+  }, [registerCurrentEntryGetter]);
 
   const goToPrev = activeIndex > 0
     ? () => setActiveIndex((i) => i - 1)
@@ -38,21 +58,13 @@ export default function ScrollCanvas() {
   };
 
   const handleAddEntry = () => {
-    // Server now decides id / ownerSeat / position — we just send date + tag.
     addEntry({ date: new Date().toISOString().slice(0, 10), tag: null });
-    // Note: no goToPage() call here anymore — addEntry() is now async (it
-    // awaits a real API call), so the new entry isn't in `entries` yet at
-    // this exact line. Once addEntry resolves and the store updates,
-    // sortedEntries re-renders with the new page — but we can't flip to it
-    // synchronously anymore the way the old mock version could.
   };
 
   return (
     <div className="scroll-stage">
       <div className="parchment-scroll scroll-drop-in">
-        {/* ── Top rod (interactive — indexer knobs) ── */}
         <div className="scroll-roller scroll-top-stick">
-          {/* Coil of rolled paper wrapped around the top rod */}
           <div className="scroll-paper-coil scroll-paper-coil-top" aria-hidden="true" />
           <ScrollStick
             entries={sortedEntries}
@@ -61,7 +73,6 @@ export default function ScrollCanvas() {
           />
         </div>
 
-        {/* ── Parchment body (unfurls downward on load) ── */}
         <div className="scroll-unfurl">
           <div className="scroll-unfurl-inner">
             <div className="scroll-parchment-body">
@@ -88,7 +99,6 @@ export default function ScrollCanvas() {
           </div>
         </div>
 
-        {/* ── Bottom rod (decorative) ── */}
         <div className="scroll-roller scroll-bottom-roller" aria-hidden="true">
           <div className="scroll-paper-coil scroll-paper-coil-bottom" aria-hidden="true" />
         </div>

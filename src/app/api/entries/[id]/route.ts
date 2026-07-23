@@ -15,11 +15,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!entry || entry.accountId !== session.accountId) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
-  if (!canEdit(entry, sessionSeat)) {
+  const { media, ...safeChanges } = changes || {};
+
+  // The tag (rendered as the entry's heading) is just a label — the owner
+  // can rename it any time, unrestricted by the 15-minute editing window
+  // that gates the written content. Only require the full canEdit() check
+  // (window + unlock) when content itself is part of this update.
+  const isOwner = entry.ownerSeat === sessionSeat;
+  const changingGatedField = Object.prototype.hasOwnProperty.call(safeChanges, "content");
+  const allowed = changingGatedField ? canEdit(entry, sessionSeat) : isOwner;
+
+  if (!allowed) {
     return NextResponse.json({ error: "You don't have permission to edit this entry." }, { status: 403 });
   }
-
-  const { media, ...safeChanges } = changes || {};
 
   const updated = await prisma.entry.update({
     where: { id },

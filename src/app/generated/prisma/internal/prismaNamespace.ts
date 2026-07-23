@@ -865,6 +865,7 @@ export const EntryScalarFieldEnum = {
   id: 'id',
   date: 'date',
   tag: 'tag',
+  tags: 'tags',
   content: 'content',
   position: 'position',
   ownerSeat: 'ownerSeat',

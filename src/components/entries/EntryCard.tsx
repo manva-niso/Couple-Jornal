@@ -10,6 +10,7 @@ import EditWindowBadge from "@/components/entries/EditWindowBadge";
 import UnlockToggle from "@/components/entries/UnlockToggle";
 import SoundAttachMenu from "@/components/entries/SoundAttachMenu";
 import AudioPlayer from "@/components/entries/AudioPlayer";
+import EntryTags from "@/components/entries/EntryTags";
 
 interface EntryCardProps {
   entry: MockEntry;
@@ -65,6 +66,10 @@ export default function EntryCard({
     updateEntry(entry.id, { tag: trimmed || null });
   };
 
+  const handleTagsChange = (tags: string[]) => {
+    updateEntry(entry.id, { tags });
+  };
+
   const formattedDate = new Date(entry.date).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -112,63 +117,62 @@ export default function EntryCard({
         <span className="rounded-full bg-[#e8ddc7] px-2 py-0.5 text-xs">{ownerLabel}</span>
       </div>
 
-      {/* Mutually Exclusive Tag / Untitled Heading Header */}
-      <div className="flex justify-center">
-        {isEditingTag ? (
-          <div className="flex w-fit items-center gap-1 rounded-full bg-[#3d2f1f]/10 px-2 py-0.5 text-xs font-medium text-[#3d2f1f] focus-within:bg-[#3d2f1f]/15">
-            <span>#</span>
-            <input
-              autoFocus
-              value={tagDraft}
-              placeholder="add a tag"
-              onChange={(e) => setTagDraft(e.target.value)}
-              onBlur={handleTagCommit}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                if (e.key === "Escape") {
-                  setTagDraft(entry.tag ?? "");
-                  setIsEditingTag(false);
-                }
-              }}
-              size={Math.max((tagDraft || "add a tag").length, 4)}
-              className="min-w-0 bg-transparent text-center font-medium text-[#3d2f1f] outline-none placeholder:font-normal placeholder:text-[#3d2f1f]/50"
-            />
-          </div>
-        ) : entry.tag ? (
-          isOwner ? (
-            <button
-              type="button"
-              onClick={() => {
-                setTagDraft(entry.tag ?? "");
-                setIsEditingTag(true);
-              }}
-              className="w-fit rounded-full bg-[#3d2f1f]/10 px-2 py-0.5 text-center text-xs font-medium text-[#3d2f1f] hover:bg-[#3d2f1f]/15"
-            >
-              #{entry.tag}
-            </button>
-          ) : (
-            <span className="w-fit rounded-full bg-[#3d2f1f]/10 px-2 py-0.5 text-xs font-medium text-[#3d2f1f]">
-              #{entry.tag}
-            </span>
-          )
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold italic text-[#8a7a63]">Untitled</span>
-            {isOwner && (
-              <button
-                type="button"
-                onClick={() => {
-                  setTagDraft("");
-                  setIsEditingTag(true);
-                }}
-                className="text-[10px] text-[#b08a5a] hover:underline"
-              >
-                + add tag
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+{variant !== "diary" && (
+<>
+<div className="flex justify-center">
+  {isEditingTag ? (
+    <input
+      autoFocus
+      value={tagDraft}
+      placeholder="Untitled"
+      onChange={(e) => setTagDraft(e.target.value)}
+      onBlur={handleTagCommit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        if (e.key === "Escape") {
+          setTagDraft(entry.tag ?? "");
+          setIsEditingTag(false);
+        }
+      }}
+      className="diary-display w-full bg-transparent text-center text-3xl italic leading-none outline-none placeholder:not-italic placeholder:text-[#a3907c] md:text-4xl"
+    />
+  ) : entry.tag ? (
+    isOwner ? (
+      <button
+        type="button"
+        onClick={() => {
+          setTagDraft(entry.tag ?? "");
+          setIsEditingTag(true);
+        }}
+        className="diary-display w-full text-center text-3xl italic leading-none outline-none md:text-4xl"
+      >
+        {entry.tag}
+      </button>
+    ) : (
+      <p className="diary-display text-center text-3xl italic leading-none md:text-4xl">
+        {entry.tag}
+      </p>
+    )
+  ) : isOwner ? (
+    <button
+      type="button"
+      onClick={() => {
+        setTagDraft("");
+        setIsEditingTag(true);
+      }}
+      className="diary-display w-full text-center text-3xl italic leading-none text-[#a3907c] outline-none md:text-4xl"
+    >
+      Untitled
+    </button>
+  ) : (
+    <p className="diary-display text-center text-3xl italic leading-none text-[#a3907c] md:text-4xl">
+      Untitled
+    </p>
+  )}
+</div>
+<EntryTags tags={entry.tags ?? []} editable={editable} onChange={handleTagsChange} />
+</>
+)}
 
       {/* MEDIA CLUSTER */}
       <div className="flex flex-col gap-2 pt-2 pb-1">

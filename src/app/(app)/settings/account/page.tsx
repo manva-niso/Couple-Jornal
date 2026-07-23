@@ -1,5 +1,5 @@
 "use client";
-
+import ExportBackupButton from "@/components/export/ExportBackupButton";
 import { useState } from "react";
 import Link from "next/link";
 import { useAccountStore } from "@/store/useAccountStore";
@@ -88,6 +88,10 @@ export default function AccountSettingsPage() {
         <p className="mb-6 text-sm text-[#8a7a63]">
           Each identifier and PIN can only be set by that seat, switch to the other seat to edit theirs.
         </p>
+
+        <div className="mb-4">
+          <ExportBackupButton />
+        </div>
 
         <PasswordChangeForm />
 

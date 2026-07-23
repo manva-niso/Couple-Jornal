@@ -84,6 +84,20 @@ export default function EntryEditor({
 
     const onMove = (clientX: number, clientY: number) => {
       if (!start || flipped) return;
+
+      // If the drag is actually forming a text selection, let selection
+      // win — cancel this gesture outright rather than racing it against
+      // the flip threshold below. This is what distinguishes "click-drag
+      // to select a sentence" from "swipe to turn the page": selecting
+      // text always produces a non-empty window selection almost
+      // immediately, while an intentional swipe (starting on empty
+      // page margin, not over selectable text) never does.
+      const selection = window.getSelection();
+      if (selection && selection.toString().length > 0) {
+        start = null;
+        return;
+      }
+
       const dx = clientX - start.x;
       const dy = clientY - start.y;
       if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;

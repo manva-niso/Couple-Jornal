@@ -20,7 +20,8 @@ export interface MockMediaAttachment {
 export interface MockEntry {
   id: string;
   date: string; // ISO date string, e.g. "2026-07-20"
-  tag: string | null; // one-word description for the stick/index
+  tag: string | null; // the heading/title shown large in diary & scroll
+  tags: string[]; // independent, multiple, freeform labels
   content: string; // plain text for now — real Tiptap JSON comes in Module 2
   position: number; // sort order
   ownerSeat: Seat;
@@ -34,6 +35,7 @@ export const mockEntries: MockEntry[] = [
     id: "entry-1",
     date: "2026-06-01",
     tag: "beginning",
+    tags: [],
     content: "The first page. Everything starts somewhere.",
     position: 0,
     ownerSeat: "USER_ONE",
@@ -45,6 +47,7 @@ export const mockEntries: MockEntry[] = [
     id: "entry-2",
     date: "2026-06-15",
     tag: "trip",
+    tags: [],
     content: "Wrote this one on the train. Still can't believe that view.",
     position: 1,
     ownerSeat: "USER_TWO",
@@ -56,6 +59,7 @@ export const mockEntries: MockEntry[] = [
     id: "entry-3",
     date: "2026-07-01",
     tag: null,
+    tags: [],
     content: "Just a regular day. Nothing special, but wanted to write anyway.",
     position: 2,
     ownerSeat: "USER_ONE",

@@ -68,7 +68,8 @@ model SeatCredential {
 model Entry {
   id                   String    @id @default(cuid())
   date                 DateTime  @db.Date
-  tag                  String?
+  tag                  String?   // the heading/title shown large in diary & scroll
+  tags                 String[]  @default([]) // independent, multiple, freeform labels
   content              String    @db.Text
   position             Int
   ownerSeat            Seat

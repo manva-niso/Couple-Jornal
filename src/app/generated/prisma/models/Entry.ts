@@ -62,6 +62,7 @@ export type EntryCountAggregateOutputType = {
   id: number
   date: number
   tag: number
+  tags: number
   content: number
   position: number
   ownerSeat: number
@@ -108,6 +109,7 @@ export type EntryCountAggregateInputType = {
   id?: true
   date?: true
   tag?: true
+  tags?: true
   content?: true
   position?: true
   ownerSeat?: true
@@ -207,6 +209,7 @@ export type EntryGroupByOutputType = {
   id: string
   date: Date
   tag: string | null
+  tags: string[]
   content: string
   position: number
   ownerSeat: $Enums.Seat
@@ -242,6 +245,7 @@ export type EntryWhereInput = {
   id?: Prisma.StringFilter<"Entry"> | string
   date?: Prisma.DateTimeFilter<"Entry"> | Date | string
   tag?: Prisma.StringNullableFilter<"Entry"> | string | null
+  tags?: Prisma.StringNullableListFilter<"Entry">
   content?: Prisma.StringFilter<"Entry"> | string
   position?: Prisma.IntFilter<"Entry"> | number
   ownerSeat?: Prisma.EnumSeatFilter<"Entry"> | $Enums.Seat
@@ -256,6 +260,7 @@ export type EntryOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   date?: Prisma.SortOrder
   tag?: Prisma.SortOrderInput | Prisma.SortOrder
+  tags?: Prisma.SortOrder
   content?: Prisma.SortOrder
   position?: Prisma.SortOrder
   ownerSeat?: Prisma.SortOrder
@@ -273,6 +278,7 @@ export type EntryWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.EntryWhereInput | Prisma.EntryWhereInput[]
   date?: Prisma.DateTimeFilter<"Entry"> | Date | string
   tag?: Prisma.StringNullableFilter<"Entry"> | string | null
+  tags?: Prisma.StringNullableListFilter<"Entry">
   content?: Prisma.StringFilter<"Entry"> | string
   position?: Prisma.IntFilter<"Entry"> | number
   ownerSeat?: Prisma.EnumSeatFilter<"Entry"> | $Enums.Seat
@@ -287,6 +293,7 @@ export type EntryOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   date?: Prisma.SortOrder
   tag?: Prisma.SortOrderInput | Prisma.SortOrder
+  tags?: Prisma.SortOrder
   content?: Prisma.SortOrder
   position?: Prisma.SortOrder
   ownerSeat?: Prisma.SortOrder
@@ -307,6 +314,7 @@ export type EntryScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"Entry"> | string
   date?: Prisma.DateTimeWithAggregatesFilter<"Entry"> | Date | string
   tag?: Prisma.StringNullableWithAggregatesFilter<"Entry"> | string | null
+  tags?: Prisma.StringNullableListFilter<"Entry">
   content?: Prisma.StringWithAggregatesFilter<"Entry"> | string
   position?: Prisma.IntWithAggregatesFilter<"Entry"> | number
   ownerSeat?: Prisma.EnumSeatWithAggregatesFilter<"Entry"> | $Enums.Seat
@@ -319,6 +327,7 @@ export type EntryCreateInput = {
   id?: string
   date: Date | string
   tag?: string | null
+  tags?: Prisma.EntryCreatetagsInput | string[]
   content: string
   position: number
   ownerSeat: $Enums.Seat
@@ -332,6 +341,7 @@ export type EntryUncheckedCreateInput = {
   id?: string
   date: Date | string
   tag?: string | null
+  tags?: Prisma.EntryCreatetagsInput | string[]
   content: string
   position: number
   ownerSeat: $Enums.Seat
@@ -345,6 +355,7 @@ export type EntryUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.EntryUpdatetagsInput | string[]
   content?: Prisma.StringFieldUpdateOperationsInput | string
   position?: Prisma.IntFieldUpdateOperationsInput | number
   ownerSeat?: Prisma.EnumSeatFieldUpdateOperationsInput | $Enums.Seat
@@ -358,6 +369,7 @@ export type EntryUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.EntryUpdatetagsInput | string[]
   content?: Prisma.StringFieldUpdateOperationsInput | string
   position?: Prisma.IntFieldUpdateOperationsInput | number
   ownerSeat?: Prisma.EnumSeatFieldUpdateOperationsInput | $Enums.Seat
@@ -371,6 +383,7 @@ export type EntryCreateManyInput = {
   id?: string
   date: Date | string
   tag?: string | null
+  tags?: Prisma.EntryCreatetagsInput | string[]
   content: string
   position: number
   ownerSeat: $Enums.Seat
@@ -383,6 +396,7 @@ export type EntryUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.EntryUpdatetagsInput | string[]
   content?: Prisma.StringFieldUpdateOperationsInput | string
   position?: Prisma.IntFieldUpdateOperationsInput | number
   ownerSeat?: Prisma.EnumSeatFieldUpdateOperationsInput | $Enums.Seat
@@ -394,6 +408,7 @@ export type EntryUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.EntryUpdatetagsInput | string[]
   content?: Prisma.StringFieldUpdateOperationsInput | string
   position?: Prisma.IntFieldUpdateOperationsInput | number
   ownerSeat?: Prisma.EnumSeatFieldUpdateOperationsInput | $Enums.Seat
@@ -412,10 +427,19 @@ export type EntryOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
+export type StringNullableListFilter<$PrismaModel = never> = {
+  equals?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel> | null
+  has?: string | Prisma.StringFieldRefInput<$PrismaModel> | null
+  hasEvery?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
+  hasSome?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
+  isEmpty?: boolean
+}
+
 export type EntryCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   date?: Prisma.SortOrder
   tag?: Prisma.SortOrder
+  tags?: Prisma.SortOrder
   content?: Prisma.SortOrder
   position?: Prisma.SortOrder
   ownerSeat?: Prisma.SortOrder
@@ -503,6 +527,15 @@ export type EntryUncheckedUpdateManyWithoutAccountNestedInput = {
   deleteMany?: Prisma.EntryScalarWhereInput | Prisma.EntryScalarWhereInput[]
 }
 
+export type EntryCreatetagsInput = {
+  set: string[]
+}
+
+export type EntryUpdatetagsInput = {
+  set?: string[]
+  push?: string | string[]
+}
+
 export type BoolFieldUpdateOperationsInput = {
   set?: boolean
 }
@@ -525,6 +558,7 @@ export type EntryCreateWithoutAccountInput = {
   id?: string
   date: Date | string
   tag?: string | null
+  tags?: Prisma.EntryCreatetagsInput | string[]
   content: string
   position: number
   ownerSeat: $Enums.Seat
@@ -537,6 +571,7 @@ export type EntryUncheckedCreateWithoutAccountInput = {
   id?: string
   date: Date | string
   tag?: string | null
+  tags?: Prisma.EntryCreatetagsInput | string[]
   content: string
   position: number
   ownerSeat: $Enums.Seat
@@ -578,6 +613,7 @@ export type EntryScalarWhereInput = {
   id?: Prisma.StringFilter<"Entry"> | string
   date?: Prisma.DateTimeFilter<"Entry"> | Date | string
   tag?: Prisma.StringNullableFilter<"Entry"> | string | null
+  tags?: Prisma.StringNullableListFilter<"Entry">
   content?: Prisma.StringFilter<"Entry"> | string
   position?: Prisma.IntFilter<"Entry"> | number
   ownerSeat?: Prisma.EnumSeatFilter<"Entry"> | $Enums.Seat
@@ -590,6 +626,7 @@ export type EntryCreateWithoutMediaInput = {
   id?: string
   date: Date | string
   tag?: string | null
+  tags?: Prisma.EntryCreatetagsInput | string[]
   content: string
   position: number
   ownerSeat: $Enums.Seat
@@ -602,6 +639,7 @@ export type EntryUncheckedCreateWithoutMediaInput = {
   id?: string
   date: Date | string
   tag?: string | null
+  tags?: Prisma.EntryCreatetagsInput | string[]
   content: string
   position: number
   ownerSeat: $Enums.Seat
@@ -630,6 +668,7 @@ export type EntryUpdateWithoutMediaInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.EntryUpdatetagsInput | string[]
   content?: Prisma.StringFieldUpdateOperationsInput | string
   position?: Prisma.IntFieldUpdateOperationsInput | number
   ownerSeat?: Prisma.EnumSeatFieldUpdateOperationsInput | $Enums.Seat
@@ -642,6 +681,7 @@ export type EntryUncheckedUpdateWithoutMediaInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.EntryUpdatetagsInput | string[]
   content?: Prisma.StringFieldUpdateOperationsInput | string
   position?: Prisma.IntFieldUpdateOperationsInput | number
   ownerSeat?: Prisma.EnumSeatFieldUpdateOperationsInput | $Enums.Seat
@@ -654,6 +694,7 @@ export type EntryCreateManyAccountInput = {
   id?: string
   date: Date | string
   tag?: string | null
+  tags?: Prisma.EntryCreatetagsInput | string[]
   content: string
   position: number
   ownerSeat: $Enums.Seat
@@ -665,6 +706,7 @@ export type EntryUpdateWithoutAccountInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.EntryUpdatetagsInput | string[]
   content?: Prisma.StringFieldUpdateOperationsInput | string
   position?: Prisma.IntFieldUpdateOperationsInput | number
   ownerSeat?: Prisma.EnumSeatFieldUpdateOperationsInput | $Enums.Seat
@@ -677,6 +719,7 @@ export type EntryUncheckedUpdateWithoutAccountInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.EntryUpdatetagsInput | string[]
   content?: Prisma.StringFieldUpdateOperationsInput | string
   position?: Prisma.IntFieldUpdateOperationsInput | number
   ownerSeat?: Prisma.EnumSeatFieldUpdateOperationsInput | $Enums.Seat
@@ -689,6 +732,7 @@ export type EntryUncheckedUpdateManyWithoutAccountInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   date?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   tag?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tags?: Prisma.EntryUpdatetagsInput | string[]
   content?: Prisma.StringFieldUpdateOperationsInput | string
   position?: Prisma.IntFieldUpdateOperationsInput | number
   ownerSeat?: Prisma.EnumSeatFieldUpdateOperationsInput | $Enums.Seat
@@ -731,6 +775,7 @@ export type EntrySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   id?: boolean
   date?: boolean
   tag?: boolean
+  tags?: boolean
   content?: boolean
   position?: boolean
   ownerSeat?: boolean
@@ -746,6 +791,7 @@ export type EntrySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   id?: boolean
   date?: boolean
   tag?: boolean
+  tags?: boolean
   content?: boolean
   position?: boolean
   ownerSeat?: boolean
@@ -759,6 +805,7 @@ export type EntrySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   id?: boolean
   date?: boolean
   tag?: boolean
+  tags?: boolean
   content?: boolean
   position?: boolean
   ownerSeat?: boolean
@@ -772,6 +819,7 @@ export type EntrySelectScalar = {
   id?: boolean
   date?: boolean
   tag?: boolean
+  tags?: boolean
   content?: boolean
   position?: boolean
   ownerSeat?: boolean
@@ -780,7 +828,7 @@ export type EntrySelectScalar = {
   accountId?: boolean
 }
 
-export type EntryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "date" | "tag" | "content" | "position" | "ownerSeat" | "lastSavedAt" | "unlockedForOwnerEdit" | "accountId", ExtArgs["result"]["entry"]>
+export type EntryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "date" | "tag" | "tags" | "content" | "position" | "ownerSeat" | "lastSavedAt" | "unlockedForOwnerEdit" | "accountId", ExtArgs["result"]["entry"]>
 export type EntryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.AccountDefaultArgs<ExtArgs>
   media?: boolean | Prisma.Entry$mediaArgs<ExtArgs>
@@ -803,6 +851,7 @@ export type $EntryPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     id: string
     date: Date
     tag: string | null
+    tags: string[]
     content: string
     position: number
     ownerSeat: $Enums.Seat
@@ -1237,6 +1286,7 @@ export interface EntryFieldRefs {
   readonly id: Prisma.FieldRef<"Entry", 'String'>
   readonly date: Prisma.FieldRef<"Entry", 'DateTime'>
   readonly tag: Prisma.FieldRef<"Entry", 'String'>
+  readonly tags: Prisma.FieldRef<"Entry", 'String[]'>
   readonly content: Prisma.FieldRef<"Entry", 'String'>
   readonly position: Prisma.FieldRef<"Entry", 'Int'>
   readonly ownerSeat: Prisma.FieldRef<"Entry", 'Seat'>
