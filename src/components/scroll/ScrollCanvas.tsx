@@ -49,9 +49,11 @@ export default function ScrollCanvas() {
 
   return (
     <div className="scroll-stage">
-      <div className="parchment-scroll">
+      <div className="parchment-scroll scroll-drop-in">
         {/* ── Top rod (interactive — indexer knobs) ── */}
         <div className="scroll-roller scroll-top-stick">
+          {/* Coil of rolled paper wrapped around the top rod */}
+          <div className="scroll-paper-coil scroll-paper-coil-top" aria-hidden="true" />
           <ScrollStick
             entries={sortedEntries}
             activeId={activeEntry?.id ?? null}
@@ -59,31 +61,37 @@ export default function ScrollCanvas() {
           />
         </div>
 
-        {/* ── Parchment body ── */}
-        <div className="scroll-parchment-body">
-          <div className="scroll-single-entry">
-            {activeEntry ? (
-              <>
-                <EntryCard entry={activeEntry} variant="scroll" />
-                <div className="scroll-entry-nav">
-                  <button onClick={goToPrev} disabled={!goToPrev}>
-                    ← Previous
-                  </button>
-                  <button onClick={goToNext} disabled={!goToNext}>
-                    Next →
-                  </button>
-                </div>
-              </>
-            ) : (
-              <p className="py-12 text-center font-serif text-sm text-[#806250]">
-                No entries yet. Add one to begin your scroll.
-              </p>
-            )}
+        {/* ── Parchment body (unfurls downward on load) ── */}
+        <div className="scroll-unfurl">
+          <div className="scroll-unfurl-inner">
+            <div className="scroll-parchment-body">
+              <div className="scroll-single-entry">
+                {activeEntry ? (
+                  <>
+                    <EntryCard entry={activeEntry} variant="scroll" />
+                    <div className="scroll-entry-nav">
+                      <button onClick={goToPrev} disabled={!goToPrev}>
+                        ← Previous
+                      </button>
+                      <button onClick={goToNext} disabled={!goToNext}>
+                        Next →
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <p className="py-12 text-center font-serif text-sm text-[#806250]">
+                    No entries yet. Add one to begin your scroll.
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
         {/* ── Bottom rod (decorative) ── */}
-        <div className="scroll-roller" aria-hidden="true" />
+        <div className="scroll-roller scroll-bottom-roller" aria-hidden="true">
+          <div className="scroll-paper-coil scroll-paper-coil-bottom" aria-hidden="true" />
+        </div>
       </div>
 
       {viewedSeat === sessionSeat && <AddDateButton onAdd={handleAddEntry} />}
