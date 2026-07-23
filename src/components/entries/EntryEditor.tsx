@@ -19,10 +19,6 @@ interface EntryEditorProps {
   onFlipPrev?: () => void;
 }
 
-// Global variables to prevent overlapping audio instances during editing
-let currentInlineAudio: HTMLAudioElement | null = null;
-let currentInlineAudioId: string | null = null;
-
 export default function EntryEditor({
   entryId,
   content,
@@ -41,7 +37,7 @@ export default function EntryEditor({
       AudioKeywordExtension,
       Link.configure({
         openOnClick: false,
-        autolink: false, 
+        autolink: false,
         HTMLAttributes: {
           class:
             "cursor-pointer text-[#5b3a4f] underline decoration-[#5b3a4f]/30 underline-offset-4 font-medium transition-colors hover:text-[#3d2f1f]",
@@ -55,39 +51,9 @@ export default function EntryEditor({
         class:
           "prose prose-sm max-w-none focus:outline-none whitespace-pre-wrap leading-relaxed text-[#3d2f1f]",
       },
-      // Intercept clicks on keyword audio elements inside the editor
-      handleClick: (view, pos, event) => {
-        const target = event.target as HTMLElement;
-        const audioElement = target.closest("[data-audio-id]") as HTMLElement;
-        
-        if (audioElement) {
-          const audioId = audioElement.getAttribute("data-audio-id");
-          if (audioId) {
-            event.preventDefault();
-            
-            if (currentInlineAudio) {
-              currentInlineAudio.pause();
-              if (currentInlineAudioId === audioId) {
-                currentInlineAudio = null;
-                currentInlineAudioId = null;
-                return true;
-              }
-            }
-
-            currentInlineAudio = new Audio(`/api/media/${audioId}.mp3`);
-            currentInlineAudioId = audioId;
-            currentInlineAudio.play().catch(err => console.error("Audio play failed:", err));
-            
-            currentInlineAudio.onended = () => {
-              currentInlineAudio = null;
-              currentInlineAudioId = null;
-            };
-            
-            return true;
-          }
-        }
-        return false;
-      },
+      // Click handling for audio-keyword marks now lives entirely in
+      // AudioKeywordMarkView.tsx's own onClick — no duplicate handleClick
+      // here, so there's only ever one Audio/Howl instance per click.
     },
     immediatelyRender: false,
   });
@@ -128,7 +94,9 @@ export default function EntryEditor({
       else onFlipPrev?.();
     };
 
-    const reset = () => { start = null; };
+    const reset = () => {
+      start = null;
+    };
 
     const onMouseDown = (e: MouseEvent) => onDown(e.clientX, e.clientY);
     const onMouseMove = (e: MouseEvent) => onMove(e.clientX, e.clientY);

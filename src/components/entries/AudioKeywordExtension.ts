@@ -4,6 +4,7 @@ import AudioKeywordMarkView from './AudioKeywordMarkView';
 
 export const AudioKeywordExtension = Mark.create({
   name: 'audioKeyword',
+  inclusive: false,
 
   addAttributes() {
     return {

@@ -20,18 +20,56 @@
 }
 
 .diary-single-page {
+  position: relative;
   width: 100%;
   height: 100%;
   padding: clamp(1.5rem, 4vw, 3rem);
   background-color: #fdfbf5;
   background-image:
+    /* Faint ruled lines, like a real diary page */
+    repeating-linear-gradient(180deg,
+      transparent 0px, transparent 27px,
+      rgb(96 74 58 / 9%) 27px, rgb(96 74 58 / 9%) 28px),
     url('/textures/parchment.jpg'),
     linear-gradient(90deg, rgb(0 0 0 / 4%) 0%, transparent 6%, transparent 94%, rgb(0 0 0 / 6%) 100%);
-  background-size: cover;
+  background-size: 100% 100%, cover, cover;
   filter: sepia(0.15) saturate(1.1);
   overflow: hidden;
   box-shadow: inset -5px 0 15px rgba(0,0,0,0.05), inset 5px 0 15px rgba(0,0,0,0.05);
 }
+
+/* Cover page: bound-in decorative first leaf */
+.diary-cover-leaf {
+  background-image:
+    url('/textures/parchment.jpg'),
+    linear-gradient(90deg, rgb(0 0 0 / 4%) 0%, transparent 6%, transparent 94%, rgb(0 0 0 / 6%) 100%);
+  background-size: cover, cover;
+}
+
+.diary-cover-frame {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(1.25rem, 3vw, 2.25rem);
+  border: 1px solid rgb(129 97 79 / 45%);
+  outline: 3px double rgb(129 97 79 / 35%);
+  outline-offset: 5px;
+}
+
+.diary-cover-frame::before,
+.diary-cover-frame::after {
+  content: "❦";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.1rem;
+  color: rgb(129 97 79 / 60%);
+}
+
+.diary-cover-frame::before { top: 0.6rem; }
+.diary-cover-frame::after { bottom: 0.6rem; }
 
 :root {
   --ink: #241408;
@@ -53,13 +91,15 @@ body {
 /* Scroll theme ---------------------------------------------------------- */
 .scroll-stage {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   min-height: 100vh;
-  padding: 2rem 1rem;
+  padding: clamp(1.25rem, 4vw, 3rem) clamp(0.75rem, 3vw, 2rem) 6rem;
+  perspective: 1600px;
   background:
     radial-gradient(circle at 12% 16%, rgb(255 227 165 / 10%), transparent 21rem),
     radial-gradient(circle at 84% 74%, rgb(194 117 62 / 14%), transparent 25rem),
+    radial-gradient(circle at 50% 110%, rgb(120 60 20 / 12%), transparent 30rem),
     linear-gradient(135deg, #0d0a09 0%, #1a1210 48%, #0d0a09 100%);
 }
 
@@ -70,7 +110,62 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* no background on the wrapper itself */
+  transform-style: preserve-3d;
+}
+
+/* Whole scroll drops down from above the viewport on load */
+.scroll-drop-in {
+  animation: scrollDropIn 0.85s cubic-bezier(0.34, 1.3, 0.5, 1) both;
+}
+
+@keyframes scrollDropIn {
+  0% { opacity: 0; transform: translateY(-5rem) rotateX(18deg); }
+  60% { opacity: 1; }
+  100% { opacity: 1; transform: translateY(0) rotateX(0deg); }
+}
+
+/* ---- Unfurl: parchment rolls open downward after the rod lands -------- */
+.scroll-unfurl {
+  display: grid;
+  grid-template-rows: 0fr;
+  width: 100%;
+  animation: scrollUnfurl 1.5s 0.75s cubic-bezier(0.6, 0.04, 0.25, 1) forwards;
+}
+
+@keyframes scrollUnfurl {
+  0% { grid-template-rows: 0fr; }
+  85% { grid-template-rows: 1.02fr; }
+  100% { grid-template-rows: 1fr; }
+}
+
+.scroll-unfurl-inner {
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  transform-style: preserve-3d;
+}
+
+/* Slight 3D lean of the paper as it unrolls, settling flat */
+.scroll-unfurl-inner .scroll-parchment-body {
+  transform-origin: 50% 0%;
+  animation: parchmentLean 1.6s 0.75s cubic-bezier(0.6, 0.04, 0.25, 1) both;
+}
+
+@keyframes parchmentLean {
+  0% { transform: rotateX(-32deg); }
+  70% { transform: rotateX(4deg); }
+  100% { transform: rotateX(0deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-drop-in,
+  .scroll-unfurl,
+  .scroll-unfurl-inner .scroll-parchment-body,
+  .scroll-bottom-roller {
+    animation: none;
+  }
+  .scroll-unfurl { grid-template-rows: 1fr; }
 }
 
 /* ---- Wooden rod (shared) ---------------------------------------------- */
@@ -78,15 +173,23 @@ body {
   position: relative;
   z-index: 4;
   width: calc(100% + 5rem);
+  max-width: calc(100vw - 1.5rem);
   height: 2.4rem;
   border-radius: 999px; /* true pill/cylinder, not a rounded rectangle */
   border: 1px solid rgb(58 26 8 / 80%);
   flex-shrink: 0;
   background:
+    /* Glossy varnish streak along the top of the cylinder */
+    linear-gradient(180deg,
+      transparent 8%, rgb(255 235 190 / 30%) 18%,
+      rgb(255 235 190 / 8%) 30%, transparent 42%),
     /* Wood grain rings running along the rod's length */
     repeating-linear-gradient(90deg,
       transparent 0px, transparent 6px,
-      rgb(60 28 8 / 12%) 7px, transparent 9px),
+      rgb(60 28 8 / 14%) 7px, transparent 9px),
+    repeating-linear-gradient(88deg,
+      transparent 0px, transparent 22px,
+      rgb(40 18 5 / 10%) 24px, transparent 27px),
     /* Cylindrical shading top-to-bottom */
     linear-gradient(180deg,
       #2e1406 0%, #6b3410 12%, #b06e30 30%,
@@ -139,14 +242,74 @@ body {
     inset 0 1px 3px rgb(255 200 120 / 40%);
 }
 
+/* Bottom rod tucks up behind the paper and casts a floor shadow */
+.scroll-bottom-roller {
+  margin-top: -0.5rem;
+}
+
+/* ---- Rolled-paper coil hugging each rod -------------------------------- */
+/* A fat cylinder of coiled parchment sitting behind the wooden rod, with
+   visible layered "windings" so the rod reads as a real rolled-up scroll. */
+.scroll-paper-coil {
+  position: absolute;
+  left: 3.2rem;
+  right: 3.2rem;
+  height: 3.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: -1;
+  border-radius: 1.6rem;
+  pointer-events: none;
+  background:
+    /* Fine paper fiber lines along the coil */
+    repeating-linear-gradient(90deg,
+      transparent 0px, transparent 54px,
+      rgb(140 90 40 / 5%) 55px, transparent 60px),
+    /* Cylindrical parchment shading */
+    linear-gradient(180deg,
+      #8a5a2c 0%, #c99a58 10%, #ecd3a0 26%,
+      #f6e6bd 42%, #ead1a0 58%, #c99a58 76%, #7c4e24 100%);
+  box-shadow:
+    0 0.35rem 0.9rem rgb(0 0 0 / 45%),
+    inset 0 3px 4px rgb(255 244 210 / 55%),
+    inset 0 -4px 6px rgb(70 35 10 / 45%);
+}
+
+/* Spiral winding lines on the coil's visible ends */
+.scroll-paper-coil::before,
+.scroll-paper-coil::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(circle at 50% 50%,
+      #f3e2b6 0px, #f3e2b6 2px,
+      #c79a5c 3px, #e8d0a0 5px),
+    #e8d0a0;
+  box-shadow:
+    inset 0 1px 2px rgb(255 250 225 / 70%),
+    inset 0 -2px 3px rgb(90 50 15 / 45%),
+    0 2px 5px rgb(0 0 0 / 35%);
+}
+
+.scroll-paper-coil::before { left: -0.5rem; }
+.scroll-paper-coil::after { right: -0.5rem; }
+
+/* The top coil peeks out below its rod; the bottom coil peeks out above */
+.scroll-paper-coil-top { top: calc(50% + 0.25rem); }
+.scroll-paper-coil-bottom { top: calc(50% - 0.25rem); }
+
 /* ---- Parchment body --------------------------------------------------- */
 .scroll-parchment-body {
   position: relative;
   z-index: 2;
-  width: 100%;
-  margin-top: -0.4rem;
-  margin-bottom: -0.4rem;
-  padding: clamp(2rem, 5vw, 4rem) clamp(2rem, 6vw, 5rem);
+  width: calc(100% - 1.5rem);
+  margin: -0.9rem auto;
+  padding: clamp(2.25rem, 5vw, 4rem) clamp(1.5rem, 6vw, 5rem) clamp(2.5rem, 6vw, 4.5rem);
   background-image: url('/textures/parchment.jpg');
   background-size: cover;
   background-position: center;
@@ -170,7 +333,6 @@ body {
   width: min(100%, 73rem);
 }
 
-
 /* Grain overlay — separate layer so clip-path on the parent isn't fought over */
 .scroll-parchment-body::before {
   content: "";
@@ -179,38 +341,34 @@ body {
   z-index: 1;
   background-image: var(--grain);
   background-size: 220px 220px;
-  opacity: 0.05;
+  opacity: 0.06;
   mix-blend-mode: multiply;
   pointer-events: none;
 }
 
-/* Paper curl shadow where parchment meets the top rod */
-.scroll-parchment-body::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 3%;
-  right: 3%;
-  height: 2.5rem;
-  z-index: 1;
-  background: linear-gradient(180deg, rgb(90 45 12 / 35%) 0%, transparent 100%);
-  pointer-events: none;
-}
-
-/* Paper curl shadow where parchment meets the bottom rod */
+/* Curl shadows where the paper disappears behind each rod, plus a soft
+   vertical "roll ripple" so the sheet doesn't look perfectly flat */
 .scroll-parchment-body::after {
   content: "";
   position: absolute;
-  top: 0;
-  left: 3%;
-  right: 3%;
-  height: 2.5rem;
+  inset: 0;
   z-index: 1;
-  background: linear-gradient(180deg, rgb(90 45 12 / 35%) 0%, transparent 100%);
   pointer-events: none;
+  background:
+    /* Top curl-under shadow */
+    linear-gradient(180deg, rgb(70 35 8 / 45%) 0%, rgb(90 45 12 / 18%) 2.5rem, transparent 4.5rem),
+    /* Bottom curl-under shadow */
+    linear-gradient(0deg, rgb(70 35 8 / 45%) 0%, rgb(90 45 12 / 18%) 2.5rem, transparent 4.5rem),
+    /* Very soft horizontal ripples from being rolled */
+    repeating-linear-gradient(180deg,
+      transparent 0rem, transparent 5.5rem,
+      rgb(120 65 20 / 5%) 6.5rem, transparent 8rem),
+    /* Side shading toward the deckled edges */
+    linear-gradient(90deg, rgb(100 50 15 / 14%) 0%, transparent 8%, transparent 92%, rgb(100 50 15 / 14%) 100%);
 }
 
-/* Overall scroll drop shadow */
+/* Overall scroll drop shadow — fades in only after the unfurl finishes so
+   its rectangular bounds aren't visible mid-animation */
 .parchment-scroll::after {
   content: "";
   position: absolute;
@@ -219,6 +377,16 @@ body {
   border-radius: 0.5rem;
   box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 50%), 0 0.5rem 1.5rem rgb(0 0 0 / 35%);
   pointer-events: none;
+  opacity: 0;
+  animation: scrollShadowIn 0.6s 2s ease-out forwards;
+}
+
+@keyframes scrollShadowIn {
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parchment-scroll::after { animation: none; opacity: 1; }
 }
 
 .scroll-entry {
@@ -235,7 +403,8 @@ body {
   min-height: 100vh;
   perspective: 2200px;
   background:
-    radial-gradient(circle at 50% 6%, rgb(255 255 255 / 12%), transparent 22rem),
+    radial-gradient(circle at 50% 6%, rgb(255 214 170 / 10%), transparent 22rem),
+    radial-gradient(circle at 18% 88%, rgb(120 90 160 / 8%), transparent 26rem),
     linear-gradient(135deg, #1b202c 0%, #0d111a 58%, #161b26 100%);
 }
 
@@ -245,18 +414,50 @@ body {
   min-height: min(74vh, 45rem);
   border: 2px solid #0f172a;
   border-radius: 0.55rem 1.2rem 1.2rem 0.55rem;
-  /* Dark blue leather cover */
-  background: 
+  /* Dark blue pebbled leather cover */
+  background:
+    /* Leather pebble grain */
+    var(--grain),
+    /* Sheen sweep across the leather */
+    linear-gradient(115deg, transparent 30%, rgb(160 190 255 / 6%) 45%, transparent 60%),
     linear-gradient(90deg, #101c30 0%, #1a2c4a 4%, #203659 8%, #1a2c4a 12%, #101c30 100%);
+  background-size: 140px 140px, cover, cover;
+  background-blend-mode: overlay, normal, normal;
   transform: rotateX(4deg);
+  animation: diaryBookIn 0.9s cubic-bezier(0.34, 1.2, 0.5, 1) both;
   box-shadow:
     0 2.5rem 4rem rgb(0 0 0 / 50%),
     0 0.65rem 0.75rem rgb(0 0 0 / 30%),
+    inset 0 1px 2px rgb(170 200 255 / 12%),
     /* Thick book edge showing pages */
     0.35rem 0.15rem 0 -0.05rem #fdfbf5,
     0.55rem 0.3rem 0 -0.1rem #f5eedc,
     0.75rem 0.45rem 0 -0.15rem #e8ddc5,
     0.95rem 0.6rem 0.4rem -0.15rem rgb(0 0 0 / 35%);
+}
+
+@keyframes diaryBookIn {
+  0% { opacity: 0; transform: translateY(-4rem) rotateX(26deg) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) rotateX(4deg) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .diary-book { animation: none; }
+}
+
+/* Ribbon bookmark draped over the book's top edge */
+.diary-book::after {
+  content: "";
+  position: absolute;
+  z-index: 15;
+  top: -0.3rem;
+  right: 12%;
+  width: 1.4rem;
+  height: 5.5rem;
+  background: linear-gradient(90deg, #6d1f2c 0%, #a03040 45%, #7c2432 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);
+  box-shadow: 0 0.4rem 0.6rem rgb(0 0 0 / 35%), inset 2px 0 3px rgb(255 255 255 / 15%);
+  pointer-events: none;
 }
 
 /* Spine shadow for the center of the book */
@@ -550,16 +751,37 @@ body {
 }
 
 @media (max-width: 720px) {
-  .scroll-roller { width: calc(100% + 3rem); }
-  .scroll-roller::before { left: -1.2rem; width: 2rem; height: 2rem; }
-  .scroll-roller::after { right: -1.2rem; width: 2rem; height: 2rem; }
-  .scroll-stick-knob-left { left: -1.2rem; width: 2rem; height: 2rem; }
-  .scroll-stick-knob-right { right: -1.2rem; width: 2rem; height: 2rem; }
-  .scroll-parchment-body { padding: 2rem 1.6rem; }
+  .scroll-stage { padding: 1rem 1.5rem 5.5rem; overflow-x: clip; }
+  .scroll-roller { width: 100%; height: 2rem; }
+  .scroll-roller::before { left: -0.6rem; width: 1.6rem; height: 1.6rem; }
+  .scroll-roller::after { right: -0.6rem; width: 1.6rem; height: 1.6rem; }
+  .scroll-roller::before {
+    box-shadow:
+      -0.35rem 0 0 -0.15rem #3e1d0c,
+      0 0.25rem 0.6rem rgb(0 0 0 / 60%),
+      inset 0 1px 3px rgb(255 200 120 / 40%);
+  }
+  .scroll-roller::after {
+    box-shadow:
+      0.35rem 0 0 -0.15rem #3e1d0c,
+      0 0.25rem 0.6rem rgb(0 0 0 / 60%),
+      inset 0 1px 3px rgb(255 200 120 / 40%);
+  }
+  .scroll-stick-knob-left { left: -0.6rem; width: 1.6rem; height: 1.6rem; }
+  .scroll-stick-knob-right { right: -0.6rem; width: 1.6rem; height: 1.6rem; }
+  .scroll-paper-coil { left: 1.2rem; right: 1.2rem; height: 2.7rem; }
+  .scroll-parchment-body { width: calc(100% - 1rem); padding: 2rem 1.4rem 2.5rem; }
   .diary-book { min-height: 76vh; }
   .diary-book::before { display: none; }
+  .diary-book::after { right: 8%; width: 1.1rem; height: 4rem; }
 
   .diary-index-grid { grid-template-columns: repeat(3, 1fr); }
   .scroll-indexer-panel { width: min(95%, 28rem); padding: 0.9rem; }
   .scroll-indexer-panel .diary-index-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 420px) {
+  .diary-index-grid,
+  .scroll-indexer-panel .diary-index-grid { grid-template-columns: repeat(2, 1fr); }
+  .scroll-parchment-body { padding: 1.75rem 1.1rem 2.25rem; }
 }
