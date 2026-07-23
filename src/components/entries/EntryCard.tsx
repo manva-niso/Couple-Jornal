@@ -9,12 +9,17 @@ import EntryEditor from "@/components/entries/EntryEditor";
 import EditWindowBadge from "@/components/entries/EditWindowBadge";
 import UnlockToggle from "@/components/entries/UnlockToggle";
 import SoundAttachMenu from "@/components/entries/SoundAttachMenu";
+import AudioPlayer from "@/components/entries/AudioPlayer";
 
 interface EntryCardProps {
   entry: MockEntry;
   variant?: "scroll" | "diary";
   onFlipNext?: () => void;
   onFlipPrev?: () => void;
+  /** When false, hides the inline "Attach audio" trigger (already-attached
+   * audio still shows) — used by the diary page, which renders its own
+   * trigger pinned to the top-right corner instead. */
+  showMediaTrigger?: boolean;
 }
 
 function LockIcon() {
@@ -44,6 +49,7 @@ export default function EntryCard({
   variant = "scroll",
   onFlipNext,
   onFlipPrev,
+  showMediaTrigger = true,
 }: EntryCardProps) {
   const sessionSeat = useSeatStore((s) => s.sessionSeat);
   const updateEntry = useEntries((s) => s.updateEntry);
@@ -82,6 +88,17 @@ export default function EntryCard({
     deleteEntry(entry.id);
   };
 
+  const generalMedia = entry.media?.filter((m) => !m.keyword) || [];
+
+  const handleRemoveMedia = async (attachmentId: string) => {
+    try {
+      await fetch(`/api/media/${attachmentId}`, { method: 'DELETE' });
+      updateEntry(entry.id, { media: entry.media.filter((m) => m.id !== attachmentId) });
+    } catch (error) {
+      console.error("Failed to delete media:", error);
+    }
+  };
+
   return (
     <div
       className={
@@ -95,82 +112,106 @@ export default function EntryCard({
         <span className="rounded-full bg-[#e8ddc7] px-2 py-0.5 text-xs">{ownerLabel}</span>
       </div>
 
-      {/* react-pageflip only forwards real clicks to <a>/<button> tags — a
-          bare <input> never gets the click inside the book, so it can't be
-          focused that way. A <button> toggles edit mode, then the input
-          autoFocuses programmatically on mount. */}
-      {isEditingTag ? (
-        <div className="flex w-fit items-center gap-1 rounded-full bg-[#3d2f1f]/10 px-2 py-0.5 text-xs font-medium text-[#3d2f1f] focus-within:bg-[#3d2f1f]/15">
-          <span>#</span>
-          <input
-            autoFocus
-            value={tagDraft}
-            placeholder="add a tag"
-            onChange={(e) => setTagDraft(e.target.value)}
-            onBlur={handleTagCommit}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-              if (e.key === "Escape") {
+      {/* Mutually Exclusive Tag / Untitled Heading Header */}
+      <div className="flex justify-center">
+        {isEditingTag ? (
+          <div className="flex w-fit items-center gap-1 rounded-full bg-[#3d2f1f]/10 px-2 py-0.5 text-xs font-medium text-[#3d2f1f] focus-within:bg-[#3d2f1f]/15">
+            <span>#</span>
+            <input
+              autoFocus
+              value={tagDraft}
+              placeholder="add a tag"
+              onChange={(e) => setTagDraft(e.target.value)}
+              onBlur={handleTagCommit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                if (e.key === "Escape") {
+                  setTagDraft(entry.tag ?? "");
+                  setIsEditingTag(false);
+                }
+              }}
+              size={Math.max((tagDraft || "add a tag").length, 4)}
+              className="min-w-0 bg-transparent text-center font-medium text-[#3d2f1f] outline-none placeholder:font-normal placeholder:text-[#3d2f1f]/50"
+            />
+          </div>
+        ) : entry.tag ? (
+          isOwner ? (
+            <button
+              type="button"
+              onClick={() => {
                 setTagDraft(entry.tag ?? "");
-                setIsEditingTag(false);
-              }
-            }}
-            size={Math.max((tagDraft || "add a tag").length, 4)}
-            className="min-w-0 bg-transparent font-medium text-[#3d2f1f] outline-none placeholder:font-normal placeholder:text-[#3d2f1f]/50"
+                setIsEditingTag(true);
+              }}
+              className="w-fit rounded-full bg-[#3d2f1f]/10 px-2 py-0.5 text-center text-xs font-medium text-[#3d2f1f] hover:bg-[#3d2f1f]/15"
+            >
+              #{entry.tag}
+            </button>
+          ) : (
+            <span className="w-fit rounded-full bg-[#3d2f1f]/10 px-2 py-0.5 text-xs font-medium text-[#3d2f1f]">
+              #{entry.tag}
+            </span>
+          )
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold italic text-[#8a7a63]">Untitled</span>
+            {isOwner && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTagDraft("");
+                  setIsEditingTag(true);
+                }}
+                className="text-[10px] text-[#b08a5a] hover:underline"
+              >
+                + add tag
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* MEDIA CLUSTER */}
+      <div className="flex flex-col gap-2 pt-2 pb-1">
+        {showMediaTrigger && (
+          <SoundAttachMenu
+            entryId={entry.id}
+            media={entry.media}
+            editable={editable}
+            onChange={(media) => updateEntry(entry.id, { media })}
           />
-        </div>
-      ) : isOwner ? (
-        <button
-          type="button"
-          onClick={() => {
-            setTagDraft(entry.tag ?? "");
-            setIsEditingTag(true);
-          }}
-          className="w-fit rounded-full bg-[#3d2f1f]/10 px-2 py-0.5 text-left text-xs font-medium text-[#3d2f1f] hover:bg-[#3d2f1f]/15"
-        >
-          {entry.tag ? `#${entry.tag}` : "+ add a tag"}
-        </button>
-      ) : (
-        entry.tag && (
-          <span className="w-fit rounded-full bg-[#3d2f1f]/10 px-2 py-0.5 text-xs font-medium text-[#3d2f1f]">
-            #{entry.tag}
-          </span>
-        )
-      )}
+        )}
 
-      {/* Content: real editor if this seat can edit right now, otherwise a
-          read-only render of the saved HTML. Both owner and non-owner can
-          always READ — editable only ever gates the edit affordance. */}
-      {editable ? (
-        <EntryEditor
-          entryId={entry.id}
-          content={entry.content}
-          editable={true}
-          media={entry.media}
-          onSave={handleSave}
-          onMediaChange={(media) => updateEntry(entry.id, { media })}
-          onFlipNext={onFlipNext}
-          onFlipPrev={onFlipPrev}
-        />
-      ) : (
-        <div
-          className="prose prose-sm max-w-none whitespace-pre-wrap leading-relaxed text-[#3d2f1f]"
-          dangerouslySetInnerHTML={{ __html: entry.content || "<em>Empty draft.</em>" }}
-        />
-      )}
+        {generalMedia.length > 0 && (
+          <div className="flex flex-col gap-2">
+            {generalMedia.map((m) => (
+              <AudioPlayer
+                key={m.id}
+                url={`/api/media/${m.id}.mp3`}
+                label={m.label}
+                variant="standard"
+                onRemove={editable ? () => handleRemoveMedia(m.id) : undefined}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
-      <SoundAttachMenu
-        media={entry.media}
+      {/* Always render EntryEditor so KeywordSoundBinder is active across all pages */}
+      <EntryEditor
+        entryId={entry.id}
+        content={entry.content}
         editable={editable}
-        onChange={(media) => updateEntry(entry.id, { media })}
+        media={entry.media}
+        onSave={handleSave}
+        onMediaChange={(media) => updateEntry(entry.id, { media })}
+        onFlipNext={onFlipNext}
+        onFlipPrev={onFlipPrev}
       />
 
       {!entry.lastSavedAt && (
         <span className="text-xs italic text-[#b08a5a]">Draft — not saved yet</span>
       )}
 
-      {/* Status row: countdown for the owner while open, lock note once closed,
-          delete + unlock toggle on the right. */}
       <div className="flex items-center justify-between gap-2 pt-1">
         <div>
           {isOwner && windowOpen && <EditWindowBadge lastSavedAt={entry.lastSavedAt} />}
@@ -181,7 +222,8 @@ export default function EntryCard({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {editable && (
+          {/* Allow entry owner to delete regardless of edit window state */}
+          {isOwner && (
             <button
               onClick={handleDelete}
               onBlur={() => setConfirmingDelete(false)}

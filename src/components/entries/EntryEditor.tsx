@@ -2,13 +2,15 @@
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
 import { useEffect, useRef } from "react";
 import type { MockMediaAttachment } from "@/types";
 import KeywordSoundBinder from "@/components/entries/KeywordSoundBinder";
+import { AudioKeywordExtension } from "./AudioKeywordExtension";
 
 interface EntryEditorProps {
   entryId: string;
-  content: string; // HTML string — Tiptap reads/writes HTML via getHTML()
+  content: string; // HTML string
   editable: boolean;
   media: MockMediaAttachment[];
   onSave: (html: string) => void;
@@ -16,6 +18,10 @@ interface EntryEditorProps {
   onFlipNext?: () => void;
   onFlipPrev?: () => void;
 }
+
+// Global variables to prevent overlapping audio instances during editing
+let currentInlineAudio: HTMLAudioElement | null = null;
+let currentInlineAudioId: string | null = null;
 
 export default function EntryEditor({
   entryId,
@@ -30,42 +36,71 @@ export default function EntryEditor({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      AudioKeywordExtension,
+      Link.configure({
+        openOnClick: false,
+        autolink: false, 
+        HTMLAttributes: {
+          class:
+            "cursor-pointer text-[#5b3a4f] underline decoration-[#5b3a4f]/30 underline-offset-4 font-medium transition-colors hover:text-[#3d2f1f]",
+        },
+      }),
+    ],
     content,
     editable,
     editorProps: {
       attributes: {
-        class: "prose prose-sm max-w-none focus:outline-none whitespace-pre-wrap leading-relaxed text-[#3d2f1f]",
+        class:
+          "prose prose-sm max-w-none focus:outline-none whitespace-pre-wrap leading-relaxed text-[#3d2f1f]",
+      },
+      // Intercept clicks on keyword audio elements inside the editor
+      handleClick: (view, pos, event) => {
+        const target = event.target as HTMLElement;
+        const audioElement = target.closest("[data-audio-id]") as HTMLElement;
+        
+        if (audioElement) {
+          const audioId = audioElement.getAttribute("data-audio-id");
+          if (audioId) {
+            event.preventDefault();
+            
+            if (currentInlineAudio) {
+              currentInlineAudio.pause();
+              if (currentInlineAudioId === audioId) {
+                currentInlineAudio = null;
+                currentInlineAudioId = null;
+                return true;
+              }
+            }
+
+            currentInlineAudio = new Audio(`/api/media/${audioId}.mp3`);
+            currentInlineAudioId = audioId;
+            currentInlineAudio.play().catch(err => console.error("Audio play failed:", err));
+            
+            currentInlineAudio.onended = () => {
+              currentInlineAudio = null;
+              currentInlineAudioId = null;
+            };
+            
+            return true;
+          }
+        }
+        return false;
       },
     },
-    // Tiptap's SSR content check can complain in Next.js if this isn't set —
-    // safe to disable since we always render this inside a "use client" component.
     immediatelyRender: false,
   });
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-
-    const stop = (e: Event) => {
-      e.stopPropagation();
-    };
-
+    const stop = (e: Event) => e.stopPropagation();
     const types = ["mousedown", "touchstart", "pointerdown"] as const;
-    for (const type of types) {
-      el.addEventListener(type, stop);
-    }
-
+    for (const type of types) el.addEventListener(type, stop);
     return () => {
-      for (const type of types) {
-        el.removeEventListener(type, stop);
-      }
+      for (const type of types) el.removeEventListener(type, stop);
     };
-    // `editor` starts null (immediatelyRender: false) and this component
-    // returns null until it's ready, so containerRef isn't attached to any
-    // DOM node on the effect's first run. Re-run once `editor` flips to
-    // truthy so we actually grab the real element instead of silently
-    // no-op'ing forever.
   }, [editor]);
 
   useEffect(() => {
@@ -83,7 +118,6 @@ export default function EntryEditor({
 
     const onMove = (clientX: number, clientY: number) => {
       if (!start || flipped) return;
-
       const dx = clientX - start.x;
       const dy = clientY - start.y;
       if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
@@ -94,9 +128,7 @@ export default function EntryEditor({
       else onFlipPrev?.();
     };
 
-    const reset = () => {
-      start = null;
-    };
+    const reset = () => { start = null; };
 
     const onMouseDown = (e: MouseEvent) => onDown(e.clientX, e.clientY);
     const onMouseMove = (e: MouseEvent) => onMove(e.clientX, e.clientY);
@@ -126,18 +158,12 @@ export default function EntryEditor({
     };
   }, [onFlipNext, onFlipPrev]);
 
-  // Keep the editor's actual content in sync if a different entry gets
-  // swapped in without this component unmounting (e.g. navigating between
-  // stick/index selections quickly).
   useEffect(() => {
     if (editor && editor.getHTML() !== content) {
       editor.commands.setContent(content);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entryId]);
+  }, [entryId, content]);
 
-  // Keep editability in sync with the permission check from the parent
-  // (e.g. the window closing mid-session while this stays mounted).
   useEffect(() => {
     editor?.setEditable(editable);
   }, [editor, editable]);
@@ -155,6 +181,7 @@ export default function EntryEditor({
       <EditorContent editor={editor} />
       {editable && (
         <KeywordSoundBinder
+          entryId={entryId}
           editor={editor}
           onAttach={(attachment) => onMediaChange([...media, attachment])}
         />

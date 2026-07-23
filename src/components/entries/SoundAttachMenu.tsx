@@ -1,77 +1,86 @@
 "use client";
 
-import { useRef } from "react";
+import { useState } from "react";
 import type { MockMediaAttachment } from "@/types";
-import AudioPlayer from "@/components/entries/AudioPlayer";
 
 interface SoundAttachMenuProps {
+  entryId: string; 
   media: MockMediaAttachment[];
   editable: boolean;
   onChange: (media: MockMediaAttachment[]) => void;
+  wrapperClassName?: string;
 }
 
-/**
- * Module 2 entry-level audio attachments. Files never leave the browser here:
- * each selected file is represented by an object URL. Module 3 replaces only
- * the URL-creation path with the media-upload API.
- */
-export default function SoundAttachMenu({ media, editable, onChange }: SoundAttachMenuProps) {
-  const createdUrls = useRef(new Set<string>());
+export default function SoundAttachMenu({
+  entryId,
+  media,
+  editable,
+  onChange,
+  wrapperClassName = "pt-2",
+}: SoundAttachMenuProps) {
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const url = URL.createObjectURL(file);
-    createdUrls.current.add(url);
-    onChange([
-      ...media,
-      {
-        id: `media-${crypto.randomUUID()}`,
-        keyword: null,
-        url,
-        type: "SOUND",
-        label: file.name,
-      },
-    ]);
+    setIsUploading(true);
 
-    // Permit choosing the same file again after removing it.
-    event.target.value = "";
-  };
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("entryId", entryId);
+      formData.append("mediaType", "SOUND");
 
-  const removeAttachment = (attachment: MockMediaAttachment) => {
-    if (createdUrls.current.delete(attachment.url)) {
-      URL.revokeObjectURL(attachment.url);
+      const response = await fetch("/api/media/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to upload media");
+      }
+
+      const data = await response.json();
+
+      onChange([
+        ...media,
+        {
+          id: data.id,
+          keyword: null,
+          url: `/api/media/${data.id}.mp3`,
+          type: "SOUND",
+          label: file.name,
+        },
+      ]);
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Failed to upload sound.");
+    } finally {
+      setIsUploading(false);
+      event.target.value = "";
     }
-    onChange(media.filter((item) => item.id !== attachment.id));
   };
+
+  // If not editable, we don't need to show the upload button at all
+  if (!editable) return null;
 
   return (
-    <section className="flex flex-col gap-2" aria-label="Entry audio attachments">
-      {media.map((attachment) => (
-        <AudioPlayer
-          key={attachment.id}
-          url={attachment.url}
-          label={
-            attachment.keyword
-              ? `${attachment.label ?? "Audio"} · “${attachment.keyword}”`
-              : attachment.label
-          }
-          onRemove={editable ? () => removeAttachment(attachment) : undefined}
+    <div className={wrapperClassName}>
+      <label
+        className={`w-fit cursor-pointer rounded-full border border-[#3d2f1f]/20 px-3 py-1.5 text-xs font-medium text-[#3d2f1f] transition-colors ${
+          isUploading ? "opacity-50 cursor-wait" : "hover:bg-[#3d2f1f]/5"
+        }`}
+      >
+        {isUploading ? "Uploading..." : "Attach audio"}
+        <input
+          type="file"
+          accept="audio/*"
+          onChange={handleFileSelected}
+          disabled={isUploading}
+          className="sr-only"
         />
-      ))}
-
-      {editable && (
-        <label className="w-fit cursor-pointer rounded-full border border-[#3d2f1f]/20 px-3 py-1.5 text-xs font-medium text-[#3d2f1f] transition-colors hover:bg-[#3d2f1f]/5">
-          Attach audio
-          <input
-            type="file"
-            accept="audio/*"
-            onChange={handleFileSelected}
-            className="sr-only"
-          />
-        </label>
-      )}
-    </section>
+      </label>
+    </div>
   );
 }

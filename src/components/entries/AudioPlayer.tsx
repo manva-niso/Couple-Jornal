@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from "react";
 interface AudioPlayerProps {
   url: string;
   label?: string | null;
+  keyword?: string | null;
+  variant?: "standard" | "compact";
   onRemove?: () => void;
 }
 
@@ -16,11 +18,13 @@ function formatTime(seconds: number): string {
   return `${minutes}:${remainder.toString().padStart(2, "0")}`;
 }
 
-/**
- * Browser-only audio controls for a local object URL in Module 2. In Module 3
- * the exact same component receives the durable URL returned by media storage.
- */
-export default function AudioPlayer({ url, label, onRemove }: AudioPlayerProps) {
+export default function AudioPlayer({ 
+  url, 
+  label, 
+  keyword, 
+  variant = "standard", 
+  onRemove 
+}: AudioPlayerProps) {
   const howlRef = useRef<Howl | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -80,9 +84,39 @@ export default function AudioPlayer({ url, label, onRemove }: AudioPlayerProps) 
   };
 
   if (loadError) {
-    return <p className="text-xs text-red-700">This audio file could not be played.</p>;
+    return <p className="text-xs text-red-700">Audio unavailable.</p>;
   }
 
+  // --- NEW COMPACT VARIANT FOR KEYWORDS ---
+  if (variant === "compact") {
+    return (
+      <div className="flex w-fit items-center gap-1.5 rounded-full bg-[#3d2f1f]/10 pl-1.5 pr-3 py-1 shadow-sm">
+        <button
+          type="button"
+          onClick={togglePlayback}
+          aria-label={isPlaying ? "Pause audio" : "Play audio"}
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#3d2f1f] text-[10px] text-[#f0e6d2] transition-opacity hover:opacity-80"
+        >
+          {isPlaying ? "II" : "▶"}
+        </button>
+        <span className="max-w-[120px] truncate text-xs font-medium text-[#3d2f1f]">
+          {keyword}
+        </span>
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="ml-1 text-[#8a7a63] transition-colors hover:text-[#3d2f1f]"
+            aria-label="Remove audio"
+          >
+            ×
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // --- STANDARD VARIANT ---
   return (
     <div className="flex items-center gap-2 rounded-lg bg-[#3d2f1f]/5 px-3 py-2">
       <button
