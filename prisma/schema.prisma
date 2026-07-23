@@ -1,0 +1,97 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Seat {
+  USER_ONE
+  USER_TWO
+}
+
+enum MediaType {
+  SOUND
+  MUSIC
+}
+
+// One Account per couple/pair. Holds the single shared password — there is
+// no per-identifier or per-seat password, matching build-guide-v4's auth model.
+model Account {
+  id           String   @id @default(cuid())
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  identifiers      AuthIdentifier[]
+  seatCredentials  SeatCredential[]
+  entries          Entry[]
+}
+
+// The username(s) someone can type at login. In practice there's just one
+// per account (RegisterForm only collects one) — modeled as a list purely
+// so an alternate login username could be added later from Settings without
+// a schema change. Never determines a seat either way.
+model AuthIdentifier {
+  id         String  @id @default(cuid())
+  identifier String  @unique
+  accountId  String
+  account    Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+}
+
+// The PIN is what decides the seat. One row per seat per account, each with
+// its own hashed PIN and its own lockout tracking (a lockout on Seat 1's PIN
+// must never block Seat 2 from logging in, and vice versa). displayName is
+// what the person is actually called ("Tara"/"John") — purely a label, not
+// used for login in any way; the PIN alone resolves the seat.
+model SeatCredential {
+  id                  String    @id @default(cuid())
+  seat                Seat
+  displayName         String?
+  pinHash             String
+  failedPinAttempts   Int       @default(0)
+  lockedUntil         DateTime?
+  accountId           String
+  account             Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, seat])
+}
+
+// Mirrors MockEntry in src/lib/mockData.ts exactly, so swapping useEntries.ts
+// from mock/localStorage to real SWR calls (Module 3.3) needs no shape changes.
+model Entry {
+  id                   String    @id @default(cuid())
+  date                 DateTime  @db.Date
+  tag                  String?
+  content              String    @db.Text
+  position             Int
+  ownerSeat            Seat
+  lastSavedAt          DateTime?
+  unlockedForOwnerEdit Boolean   @default(false)
+  accountId            String
+  account              Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  media MediaAttachment[]
+
+  @@index([accountId])
+}
+
+// Mirrors MockMediaAttachment. `keyword` null = attached to the whole entry,
+// non-null = bound to a specific highlighted word (KeywordSoundBinder).
+model MediaAttachment {
+  id      String    @id @default(cuid())
+  keyword String?
+  url     String
+  type    MediaType
+  label   String?
+  entryId String
+  entry   Entry     @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([entryId])
+}

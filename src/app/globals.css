@@ -1,0 +1,565 @@
+@import "tailwindcss";
+
+.diary-flip-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2.75rem;
+  z-index: 20;
+  touch-action: none;
+}
+
+.diary-flip-edge-left {
+  left: 0;
+  cursor: w-resize;
+}
+
+.diary-flip-edge-right {
+  right: 0;
+  cursor: e-resize;
+}
+
+.diary-single-page {
+  width: 100%;
+  height: 100%;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  background-color: #fdfbf5;
+  background-image:
+    url('/textures/parchment.jpg'),
+    linear-gradient(90deg, rgb(0 0 0 / 4%) 0%, transparent 6%, transparent 94%, rgb(0 0 0 / 6%) 100%);
+  background-size: cover;
+  filter: sepia(0.15) saturate(1.1);
+  overflow: hidden;
+  box-shadow: inset -5px 0 15px rgba(0,0,0,0.05), inset 5px 0 15px rgba(0,0,0,0.05);
+}
+
+:root {
+  --ink: #241408;
+  --muted-ink: #795d45;
+  --paper: #f7e7be;
+  --paper-deep: #c9843d;
+  --plum: #543446;
+
+  /* Subtle fractal-noise grain — mimics photographed paper fiber / film grain
+     instead of a flat gradient. Reused on parchment and diary pages. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+body {
+  background: #241c22;
+  color: var(--ink);
+}
+
+/* Scroll theme ---------------------------------------------------------- */
+.scroll-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  background:
+    radial-gradient(circle at 12% 16%, rgb(255 227 165 / 10%), transparent 21rem),
+    radial-gradient(circle at 84% 74%, rgb(194 117 62 / 14%), transparent 25rem),
+    linear-gradient(135deg, #0d0a09 0%, #1a1210 48%, #0d0a09 100%);
+}
+
+/* ---- Scroll wrapper: rod + parchment + rod as one object -------------- */
+.parchment-scroll {
+  position: relative;
+  width: min(100%, 52rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* no background on the wrapper itself */
+}
+
+/* ---- Wooden rod (shared) ---------------------------------------------- */
+.scroll-roller {
+  position: relative;
+  z-index: 4;
+  width: calc(100% + 5rem);
+  height: 2.4rem;
+  border-radius: 999px; /* true pill/cylinder, not a rounded rectangle */
+  border: 1px solid rgb(58 26 8 / 80%);
+  flex-shrink: 0;
+  background:
+    /* Wood grain rings running along the rod's length */
+    repeating-linear-gradient(90deg,
+      transparent 0px, transparent 6px,
+      rgb(60 28 8 / 12%) 7px, transparent 9px),
+    /* Cylindrical shading top-to-bottom */
+    linear-gradient(180deg,
+      #2e1406 0%, #6b3410 12%, #b06e30 30%,
+      #dba05c 48%, #b06e30 66%, #6b3410 84%, #2e1406 100%);
+  box-shadow:
+    0 0.4rem 1rem rgb(0 0 0 / 55%),
+    0 0.15rem 0.3rem rgb(0 0 0 / 40%),
+    inset 0 2px 3px rgb(255 220 160 / 45%), /* top highlight = round surface */
+    inset 0 -3px 4px rgb(0 0 0 / 35%); /* bottom shadow = round surface */
+}
+
+/* ---- Ornate knobs at each rod end ------------------------------------- */
+.scroll-roller::before,
+.scroll-roller::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 50%;
+  border: 2px solid rgb(42 18 6 / 70%);
+  background:
+    /* Concentric wood-grain rings on the end-grain face */
+    repeating-radial-gradient(circle at 40% 38%,
+      rgb(70 35 12 / 25%) 0px, rgb(70 35 12 / 25%) 1px,
+      transparent 2px, transparent 4px),
+    radial-gradient(circle at 38% 35%,
+      #d4943e 0%, #a36820 28%, #6b3a12 60%, #3e1d0c 100%);
+  box-shadow:
+    0 0.25rem 0.6rem rgb(0 0 0 / 60%),
+    inset 0 1px 3px rgb(255 200 120 / 40%),
+    inset 0 -1px 2px rgb(0 0 0 / 30%);
+}
+
+/* Pointed finial tips on the knobs */
+.scroll-roller::before {
+  left: -1.8rem;
+  /* add pointed tip via box-shadow */
+  box-shadow:
+    -0.5rem 0 0 -0.15rem #3e1d0c,
+    0 0.25rem 0.6rem rgb(0 0 0 / 60%),
+    inset 0 1px 3px rgb(255 200 120 / 40%);
+}
+.scroll-roller::after {
+  right: -1.8rem;
+  box-shadow:
+    0.5rem 0 0 -0.15rem #3e1d0c,
+    0 0.25rem 0.6rem rgb(0 0 0 / 60%),
+    inset 0 1px 3px rgb(255 200 120 / 40%);
+}
+
+/* ---- Parchment body --------------------------------------------------- */
+.scroll-parchment-body {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  margin-top: -0.4rem;
+  margin-bottom: -0.4rem;
+  padding: clamp(2rem, 5vw, 4rem) clamp(2rem, 6vw, 5rem);
+  background-image: url('/textures/parchment.jpg');
+  background-size: cover;
+  background-position: center;
+  /* Warms/tints the photo toward your palette instead of using it raw */
+  filter: sepia(0.35) saturate(1.3) brightness(1.05) contrast(1.05);
+  clip-path: polygon(
+    0% 0%, 100% 0%, 100% 3%, 99.2% 7%, 100% 12%, 99.5% 17%, 100% 23%, 99.2% 28%,
+    100% 34%, 99.6% 40%, 100% 47%, 99.3% 53%, 100% 59%, 99.5% 65%,
+    100% 71%, 99.2% 77%, 100% 83%, 99.6% 89%, 100% 94%, 99.3% 97%, 100% 100%,
+    0% 100%, 0.7% 97%, 0% 94%, 0.4% 89%, 0% 83%, 0.8% 77%, 0% 71%,
+    0.5% 65%, 0% 59%, 0.7% 53%, 0% 47%, 0.4% 40%, 0% 34%,
+    0.8% 28%, 0% 23%, 0.5% 17%, 0% 12%, 0.8% 7%, 0% 3%
+  );
+  box-shadow:
+    inset 0 0 3rem rgb(120 60 20 / 18%),
+    inset 0 2rem 3rem -2rem rgb(100 50 15 / 25%),
+    inset 0 -2rem 3rem -2rem rgb(100 50 15 / 25%);
+}
+.diary-book-wrapper {
+  position: relative;
+  width: min(100%, 73rem);
+}
+
+
+/* Grain overlay — separate layer so clip-path on the parent isn't fought over */
+.scroll-parchment-body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-image: var(--grain);
+  background-size: 220px 220px;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* Paper curl shadow where parchment meets the top rod */
+.scroll-parchment-body::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 3%;
+  right: 3%;
+  height: 2.5rem;
+  z-index: 1;
+  background: linear-gradient(180deg, rgb(90 45 12 / 35%) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+/* Paper curl shadow where parchment meets the bottom rod */
+.scroll-parchment-body::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 3%;
+  right: 3%;
+  height: 2.5rem;
+  z-index: 1;
+  background: linear-gradient(180deg, rgb(90 45 12 / 35%) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+/* Overall scroll drop shadow */
+.parchment-scroll::after {
+  content: "";
+  position: absolute;
+  inset: 1.5rem -0.5rem -0.5rem -0.5rem;
+  z-index: -1;
+  border-radius: 0.5rem;
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 50%), 0 0.5rem 1.5rem rgb(0 0 0 / 35%);
+  pointer-events: none;
+}
+
+.scroll-entry {
+  position: relative;
+  padding: 1.75rem 0;
+  border-bottom: 1px solid rgb(99 51 18 / 31%);
+  text-shadow: 0 1px rgb(255 247 216 / 25%);
+}
+
+.scroll-entry:last-child { border-bottom: 0; }
+
+/* Diary theme ----------------------------------------------------------- */
+.diary-stage {
+  min-height: 100vh;
+  perspective: 2200px;
+  background:
+    radial-gradient(circle at 50% 6%, rgb(255 255 255 / 12%), transparent 22rem),
+    linear-gradient(135deg, #1b202c 0%, #0d111a 58%, #161b26 100%);
+}
+
+.diary-book {
+  position: relative;
+  width: min(100%, 73rem);
+  min-height: min(74vh, 45rem);
+  border: 2px solid #0f172a;
+  border-radius: 0.55rem 1.2rem 1.2rem 0.55rem;
+  /* Dark blue leather cover */
+  background: 
+    linear-gradient(90deg, #101c30 0%, #1a2c4a 4%, #203659 8%, #1a2c4a 12%, #101c30 100%);
+  transform: rotateX(4deg);
+  box-shadow:
+    0 2.5rem 4rem rgb(0 0 0 / 50%),
+    0 0.65rem 0.75rem rgb(0 0 0 / 30%),
+    /* Thick book edge showing pages */
+    0.35rem 0.15rem 0 -0.05rem #fdfbf5,
+    0.55rem 0.3rem 0 -0.1rem #f5eedc,
+    0.75rem 0.45rem 0 -0.15rem #e8ddc5,
+    0.95rem 0.6rem 0.4rem -0.15rem rgb(0 0 0 / 35%);
+}
+
+/* Spine shadow for the center of the book */
+.diary-book::before {
+  content: "";
+  position: absolute;
+  z-index: 10;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 3rem;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, 
+    rgb(0 0 0 / 25%) 0%, 
+    rgb(0 0 0 / 5%) 30%, 
+    transparent 50%, 
+    rgb(0 0 0 / 5%) 70%, 
+    rgb(0 0 0 / 25%) 100%
+  );
+  box-shadow: inset 0 0 1rem rgb(0 0 0 / 10%);
+  pointer-events: none;
+}
+
+
+.diary-left-page::before,
+.diary-right-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-image: var(--grain);
+  background-size: 200px 200px;
+  opacity: 0.035;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+
+.diary-kicker {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #846754;
+}
+
+.diary-display {
+  font-family: var(--font-display), Georgia, serif;
+  color: #30221c;
+}
+
+.diary-rule {
+  height: 1px;
+  margin: 1.25rem 0;
+  background: linear-gradient(90deg, #785b49, transparent);
+}
+
+/* Diary index button grid ------------------------------------------------ */
+.diary-index-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.55rem;
+  flex: 1;
+  align-content: start;
+}
+
+.diary-index-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.55rem 0.3rem;
+  border: 1px solid rgb(111 83 65 / 18%);
+  border-radius: 0.35rem;
+  background: linear-gradient(135deg, rgb(255 253 247 / 80%), rgb(241 236 226 / 90%));
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-align: center;
+  min-height: 0;
+}
+
+.diary-index-btn:hover {
+  background: linear-gradient(135deg, rgb(111 83 65 / 12%), rgb(111 83 65 / 8%));
+  border-color: rgb(111 83 65 / 35%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 8%);
+}
+
+.diary-index-btn .idx-num {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 0.6rem;
+  color: #947461;
+  line-height: 1;
+}
+
+.diary-index-btn .idx-tag {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 0.72rem;
+  font-style: italic;
+  color: #30221c;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.diary-index-btn .idx-date {
+  font-size: 0.55rem;
+  color: #8a7a63;
+  line-height: 1;
+}
+
+.diary-index-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgb(111 83 65 / 15%);
+  margin-top: auto;
+}
+
+.diary-index-pagination button {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #765746;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.25rem;
+  transition: all 0.15s ease;
+}
+
+.diary-index-pagination button:hover:not(:disabled) {
+  background: rgb(111 83 65 / 8%);
+  color: #3d2f1f;
+}
+
+.diary-index-pagination button:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.diary-index-pagination .page-indicator {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 0.6rem;
+  color: #947461;
+}
+
+/* Scroll single-entry view ---------------------------------------------- */
+.scroll-single-entry {
+  min-height: 12rem;
+}
+
+.scroll-entry-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0 0.5rem;
+  border-top: 1px solid rgb(99 51 18 / 22%);
+}
+
+.scroll-entry,
+.prose {
+  font-family: var(--font-body), Georgia, serif;
+  font-size: 1.05rem;
+  line-height: 1.75;
+}
+
+
+.scroll-entry-nav button {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #5d2c11;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.25rem;
+  transition: all 0.15s ease;
+  text-shadow: 0 1px rgb(255 247 216 / 48%);
+}
+
+.scroll-entry-nav button:hover:not(:disabled) {
+  background: rgb(99 51 18 / 10%);
+}
+
+.scroll-entry-nav button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Scroll stick indexer --------------------------------------------------- */
+.scroll-top-stick {
+  position: relative;
+  cursor: default;
+}
+
+.scroll-stick-knob {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  z-index: 6;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.scroll-stick-knob:hover {
+  filter: brightness(1.25) drop-shadow(0 0 6px rgb(210 160 80 / 50%));
+  transform: translateY(-50%) scale(1.1);
+}
+
+.scroll-stick-knob-left { left: -1.8rem; }
+.scroll-stick-knob-right { right: -1.8rem; }
+
+.scroll-indexer-panel {
+  position: absolute;
+  top: calc(100% + 0.7rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  width: min(92%, 36rem);
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 1.2rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(74 32 10 / 30%);
+  background:
+    radial-gradient(ellipse at center, rgb(255 238 181 / 92%) 0%, transparent 70%),
+    linear-gradient(180deg, #f8df9c 0%, #f5d58c 100%);
+  box-shadow: 0 0.8rem 2rem rgb(0 0 0 / 32%), inset 0 0 1.5rem rgb(83 39 13 / 12%);
+  animation: indexerSlideDown 0.22s ease-out;
+}
+
+@keyframes indexerSlideDown {
+  from { opacity: 0; transform: translateX(-50%) translateY(-0.5rem); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.scroll-indexer-panel .diary-index-grid {
+  gap: 0.45rem;
+}
+
+.scroll-indexer-panel .diary-index-btn {
+  background: linear-gradient(135deg, rgb(255 250 230 / 85%), rgb(245 213 140 / 60%));
+  border-color: rgb(74 32 10 / 20%);
+}
+
+.scroll-indexer-panel .diary-index-btn:hover {
+  background: linear-gradient(135deg, rgb(74 32 10 / 12%), rgb(74 32 10 / 8%));
+  border-color: rgb(74 32 10 / 40%);
+}
+
+.scroll-indexer-panel .diary-index-pagination button {
+  color: #5d2c11;
+}
+
+.scroll-indexer-panel .diary-index-pagination button:hover:not(:disabled) {
+  background: rgb(74 32 10 / 10%);
+  color: #3d1a08;
+}
+
+.scroll-indexer-panel .diary-index-pagination .page-indicator {
+  color: #7a4520;
+}
+
+.scroll-indexer-title {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #5d2c11;
+  margin-bottom: 0.7rem;
+  text-align: center;
+  text-shadow: 0 1px rgb(255 247 216 / 48%);
+}
+
+@media (max-width: 720px) {
+  .scroll-roller { width: calc(100% + 3rem); }
+  .scroll-roller::before { left: -1.2rem; width: 2rem; height: 2rem; }
+  .scroll-roller::after { right: -1.2rem; width: 2rem; height: 2rem; }
+  .scroll-stick-knob-left { left: -1.2rem; width: 2rem; height: 2rem; }
+  .scroll-stick-knob-right { right: -1.2rem; width: 2rem; height: 2rem; }
+  .scroll-parchment-body { padding: 2rem 1.6rem; }
+  .diary-book { min-height: 76vh; }
+  .diary-book::before { display: none; }
+
+  .diary-index-grid { grid-template-columns: repeat(3, 1fr); }
+  .scroll-indexer-panel { width: min(95%, 28rem); padding: 0.9rem; }
+  .scroll-indexer-panel .diary-index-grid { grid-template-columns: repeat(3, 1fr); }
+}
