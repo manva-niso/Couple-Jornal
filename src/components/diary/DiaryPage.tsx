@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { MockEntry } from "@/types";
 import { useSeatStore } from "@/store/useSeatStore";
 import { useEntries } from "@/hooks/useEntries";
 import { canEdit } from "@/lib/permissions";
+import { useStopPageFlipDrag } from "@/hooks/useStopPageFlipDrag";
 import EntryCard from "@/components/entries/EntryCard";
-import SoundAttachMenu from "@/components/entries/SoundAttachMenu";
+import SoundDots from "@/components/entries/SoundDots";
 import EntryTags from "@/components/entries/EntryTags";
 
 interface DiaryPageProps {
@@ -14,29 +15,6 @@ interface DiaryPageProps {
   onBackToIndex: () => void;
   onFlipNext?: () => void;
   onFlipPrev?: () => void;
-}
-
-// react-pageflip attaches its own drag-to-flip mousedown listener directly
-// (via native addEventListener) on an ancestor element several levels above
-// any of our components. React's onMouseDown/onTouchStart/onPointerDown JSX
-// props are delegated to a single listener way up at the app root — so the
-// *native* event physically bubbles through page-flip's own listener first,
-// where it calls preventDefault() and blocks focus, before React's synthetic
-// dispatch (and our stopPropagation call inside it) ever runs. The only real
-// fix is a native listener on an intermediate ancestor — this hook does that.
-function useStopPageFlipDrag<T extends HTMLElement>() {
-  const ref = useRef<T>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const stop = (e: Event) => e.stopPropagation();
-    const types = ["mousedown", "touchstart", "pointerdown"] as const;
-    for (const type of types) el.addEventListener(type, stop);
-    return () => {
-      for (const type of types) el.removeEventListener(type, stop);
-    };
-  }, []);
-  return ref;
 }
 
 export default function DiaryPage({ entry, onBackToIndex, onFlipNext, onFlipPrev }: DiaryPageProps) {
@@ -59,6 +37,15 @@ export default function DiaryPage({ entry, onBackToIndex, onFlipNext, onFlipPrev
     updateEntry(entry.id, { tag: trimmed || null });
   };
 
+  const handleRemoveMedia = async (attachmentId: string) => {
+    try {
+      await fetch(`/api/media/${attachmentId}`, { method: "DELETE" });
+      updateEntry(entry.id, { media: entry.media.filter((m) => m.id !== attachmentId) });
+    } catch (error) {
+      console.error("Failed to delete media:", error);
+    }
+  };
+
   return (
     <div className="diary-single-page relative flex min-h-0 flex-col">
       <div className="diary-flip-edge diary-flip-edge-left" aria-hidden="true" />
@@ -76,14 +63,14 @@ export default function DiaryPage({ entry, onBackToIndex, onFlipNext, onFlipPrev
           inside it) so it stays fixed in place rather than scrolling away
           or getting clipped by that area's overflow. */}
       <div className="relative mt-4 px-8">
-        {editable && (
+        {(editable || (entry.media?.filter((m) => !m.keyword).length ?? 0) > 0) && (
           <div ref={soundMenuRef} className="absolute right-0 top-0">
-            <SoundAttachMenu
+            <SoundDots
               entryId={entry.id}
               media={entry.media ?? []}
               editable={editable}
               onChange={(media) => updateEntry(entry.id, { media })}
-              wrapperClassName=""
+              onRemove={handleRemoveMedia}
             />
           </div>
         )}
@@ -142,7 +129,6 @@ export default function DiaryPage({ entry, onBackToIndex, onFlipNext, onFlipPrev
           variant="diary"
           onFlipNext={onFlipNext}
           onFlipPrev={onFlipPrev}
-          showMediaTrigger={false}
         />
       </div>
     </div>

@@ -8,8 +8,7 @@ import { useEntries } from "@/hooks/useEntries";
 import EntryEditor from "@/components/entries/EntryEditor";
 import EditWindowBadge from "@/components/entries/EditWindowBadge";
 import UnlockToggle from "@/components/entries/UnlockToggle";
-import SoundAttachMenu from "@/components/entries/SoundAttachMenu";
-import AudioPlayer from "@/components/entries/AudioPlayer";
+import SoundDots from "@/components/entries/SoundDots";
 import EntryTags from "@/components/entries/EntryTags";
 
 interface EntryCardProps {
@@ -17,10 +16,6 @@ interface EntryCardProps {
   variant?: "scroll" | "diary";
   onFlipNext?: () => void;
   onFlipPrev?: () => void;
-  /** When false, hides the inline "Attach audio" trigger (already-attached
-   * audio still shows) — used by the diary page, which renders its own
-   * trigger pinned to the top-right corner instead. */
-  showMediaTrigger?: boolean;
 }
 
 function LockIcon() {
@@ -50,7 +45,6 @@ export default function EntryCard({
   variant = "scroll",
   onFlipNext,
   onFlipPrev,
-  showMediaTrigger = true,
 }: EntryCardProps) {
   const sessionSeat = useSeatStore((s) => s.sessionSeat);
   const updateEntry = useEntries((s) => s.updateEntry);
@@ -93,8 +87,6 @@ export default function EntryCard({
     deleteEntry(entry.id);
   };
 
-  const generalMedia = entry.media?.filter((m) => !m.keyword) || [];
-
   const handleRemoveMedia = async (attachmentId: string) => {
     try {
       await fetch(`/api/media/${attachmentId}`, { method: 'DELETE' });
@@ -109,9 +101,21 @@ export default function EntryCard({
       className={
         variant === "diary"
           ? "flex h-full flex-col gap-3"
-          : "scroll-entry flex flex-col gap-2"
+          : "scroll-entry relative flex flex-col gap-2"
       }
     >
+      {variant !== "diary" && (
+        <div className="absolute right-0 top-0">
+          <SoundDots
+            entryId={entry.id}
+            media={entry.media}
+            editable={editable}
+            onChange={(media) => updateEntry(entry.id, { media })}
+            onRemove={handleRemoveMedia}
+          />
+        </div>
+      )}
+
       <div className="flex items-center justify-between text-sm text-[#8a7a63]">
         <span>{formattedDate}</span>
         <span className="rounded-full bg-[#e8ddc7] px-2 py-0.5 text-xs">{ownerLabel}</span>
@@ -173,32 +177,6 @@ export default function EntryCard({
 <EntryTags tags={entry.tags ?? []} editable={editable} onChange={handleTagsChange} />
 </>
 )}
-
-      {/* MEDIA CLUSTER */}
-      <div className="flex flex-col gap-2 pt-2 pb-1">
-        {showMediaTrigger && (
-          <SoundAttachMenu
-            entryId={entry.id}
-            media={entry.media}
-            editable={editable}
-            onChange={(media) => updateEntry(entry.id, { media })}
-          />
-        )}
-
-        {generalMedia.length > 0 && (
-          <div className="flex flex-col gap-2">
-            {generalMedia.map((m) => (
-              <AudioPlayer
-                key={m.id}
-                url={`/api/media/${m.id}.mp3`}
-                label={m.label}
-                variant="standard"
-                onRemove={editable ? () => handleRemoveMedia(m.id) : undefined}
-              />
-            ))}
-          </div>
-        )}
-      </div>
 
       {/* Always render EntryEditor so KeywordSoundBinder is active across all pages */}
       <EntryEditor
